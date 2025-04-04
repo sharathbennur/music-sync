@@ -67,13 +67,27 @@ def test_replace_song(search_result_list: list) -> dict:
         "is_explicit": is_explicit 
     }
 
-def q_replace_song(search_result_list):
+def q_replace_song(search_result_list)-> int:
     """
     Utility function to decide which track the should be liked if multiple options are 
     available 
     """
-    
-
+    q_text = "Select your 'liked song' from the options below:"
+    for song in search_result_list:
+        song_artists = ""
+        if song.type == 'song':
+            for artist in song.artists:
+                song_artists = song_artists.join([song_artists, ('' if not song_artists else '+'),  artist['name']]).strip()
+                # song_artists = song_artists.join([song_artists, '+', artist['name']]) 
+            song_text = "{}.{}-{}-{}".format(song.index, song.song_title, song_artists, song.album_name)
+            q_text = '\n'.join([q_text, song_text])
+    print(q_text)
+    selected_song = input("Which song: ")
+    if selected_song:
+        try:
+            return int(selected_song)
+        except ValueError:
+            return None
 
 """
 Psuedocode:
@@ -103,8 +117,15 @@ def sync_sp_ytm():
                     pass
                 else:
                     replacement_song = q_replace_song(search_result_list)
+                    if replacement_song:
+                        print(replacement_song)
+                        temp = ytm.rate_song(videoId="", rating="LIKE")
+                        print(temp)
+                    else:
+                        print("No song selected, moving along...")
+                        pass
         else:
-            print("Album")
+            pass
         
 
 sync_sp_ytm()
