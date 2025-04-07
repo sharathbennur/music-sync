@@ -1,12 +1,12 @@
 import pickle
 from pathlib import Path
 from ytmusicapi import YTMusic
-from pprint import pprint
-
 from utils import YTM_Song
+
 
 parent_dir_path = Path(__file__).resolve().parents[1]
 ytm = YTMusic("{}/data/browser.json".format(parent_dir_path.absolute()))
+# print(ytm.get_account_info())
 
 
 def get_yt_search_results(item) -> list[YTM_Song]:
@@ -46,7 +46,7 @@ def get_yt_search_results(item) -> list[YTM_Song]:
     return search_result_list
 
 
-def test_replace_song(search_result_list: list) -> dict:
+def q_replace_song(search_result_list: list) -> dict:
     """
     Utility function to ask user if the current track in the playlist should be replaced
     with a different track 
@@ -67,27 +67,41 @@ def test_replace_song(search_result_list: list) -> dict:
         "is_explicit": is_explicit 
     }
 
-def q_replace_song(search_result_list)-> int:
+def q_which_song(search_result_list: list)-> int:
     """
     Utility function to decide which track the should be liked if multiple options are 
     available 
     """
-    q_text = "Select your 'liked song' from the options below:"
-    for song in search_result_list:
+    q_text = "Select which song to 'LIKE' from the options below:"
+    for idx, song in enumerate(search_result_list):
         song_artists = ""
         if song.type == 'song':
             for artist in song.artists:
                 song_artists = song_artists.join([song_artists, ('' if not song_artists else '+'),  artist['name']]).strip()
                 # song_artists = song_artists.join([song_artists, '+', artist['name']]) 
-            song_text = "{}.{}-{}-{}".format(song.index, song.song_title, song_artists, song.album_name)
+            song_text = "{}.{}-{}-{}".format(idx, song.song_title, song_artists, song.album_name)
             q_text = '\n'.join([q_text, song_text])
     print(q_text)
-    selected_song = input("Which song: ")
+    selected_song = input("Select song # or 'e' to: ")
     if selected_song:
         try:
             return int(selected_song)
         except ValueError:
             return None
+
+
+def validate_rate_song(index: int, 
+                       search_result_list: list):
+    """
+    Utility function to validate if index is correct and "LIKE" song by index
+    """
+    if index != None:
+        replacement_song = search_result_list[index]
+        temp = ytm.rate_song(videoId=replacement_song.video_id, rating="LIKE")
+        print(temp)
+    else:
+        print("No song selected, moving along...")
+        
 
 """
 Psuedocode:
@@ -110,20 +124,15 @@ def sync_sp_ytm():
             search_result_list = get_yt_search_results(item)
             # if you have search results - you get a list back
             if search_result_list:
-                test_results = test_replace_song(search_result_list)
+                test_results = q_replace_song(search_result_list)
                 if test_results["in_library"] and not test_results["is_explicit"]:
-                    replacement_song = q_replace_song(search_result_list)
+                    replacement_song_index = q_which_song(search_result_list)
                 elif test_results["in_library"] and test_results["is_explicit"]:
                     pass
                 else:
-                    replacement_song = q_replace_song(search_result_list)
-                    if replacement_song:
-                        print(replacement_song)
-                        temp = ytm.rate_song(videoId="", rating="LIKE")
-                        print(temp)
-                    else:
-                        print("No song selected, moving along...")
-                        pass
+                    replacement_song_index = q_which_song(search_result_list)
+                    print(replacement_song_index)
+                    validate_rate_song(replacement_song_index, search_result_list)
         else:
             pass
         
