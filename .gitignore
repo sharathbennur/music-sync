@@ -1,3 +1,4 @@
 *.env
 *.pickle
 data/*
+browser.json
